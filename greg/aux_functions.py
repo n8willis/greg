@@ -28,6 +28,7 @@ import unicodedata
 import string
 from urllib.request import urlopen
 from urllib.error import URLError
+from urllib.parse import urlparse
 
 from pkg_resources import resource_filename
 import feedparser
@@ -222,6 +223,13 @@ def download_handler(feed, placeholders):
             # check if request went ok
             if fin.getcode() != 200:
                 raise URLError
+            # check if redirection occurs, update filename accordingly
+            if fin.geturl() != placeholders.link:
+                placeholders.filename = os.path.basename(urlparse(
+                    fin.geturl()).path)
+                placeholders.fullpath = os.path.join(
+                    placeholders.directory, placeholders.filename)
+                print("Redirection to {}".format(fin.geturl()))
             # check if fullpath allready exists
             while os.path.isfile(placeholders.fullpath):
                 (root, ext) = os.path.splitext(placeholders.filename)
