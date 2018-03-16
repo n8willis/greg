@@ -224,7 +224,8 @@ def download_handler(feed, placeholders):
                 raise URLError
             # check if fullpath allready exists
             while os.path.isfile(placeholders.fullpath):
-                placeholders.filename = placeholders.filename + '_'
+                (root, ext) = os.path.splitext(placeholders.filename)
+                placeholders.filename =  root + '_' + ext
                 placeholders.fullpath = os.path.join(
                     placeholders.directory, placeholders.filename)
             # write content to file
