@@ -225,13 +225,15 @@ def download_handler(feed, placeholders):
                 raise URLError
             # check if redirection occurs, update filename accordingly
             if fin.geturl() != placeholders.link:
+                print("Redirection to {}".format(fin.geturl()))
                 nubasename = os.path.basename(urlparse(fin.geturl()).path)
                 (root, ext) = os.path.splitext(nubasename)
                 if len(ext) > 0 :
                     placeholders.filename = nubasename
                     placeholders.fullpath = os.path.join(
                         placeholders.directory, placeholders.filename)
-                print("Redirection to {}".format(fin.geturl()))
+                    print("Rename to {}".format(nubasename))
+                
             # check if fullpath allready exists
             while os.path.isfile(placeholders.fullpath):
                 (root, ext) = os.path.splitext(placeholders.filename)
