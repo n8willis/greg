@@ -220,6 +220,8 @@ def download_handler(feed, placeholders):
     value = feed.retrieve_config('downloadhandler', 'greg')
     if value == 'greg':
         with urlopen(placeholders.link) as fin:
+            renamed = False
+            oldname = placeholders.filename
             # check if request went ok
             if fin.getcode() != 200:
                 raise URLError
@@ -232,14 +234,16 @@ def download_handler(feed, placeholders):
                     placeholders.filename = nubasename
                     placeholders.fullpath = os.path.join(
                         placeholders.directory, placeholders.filename)
-                    print("Rename to {}".format(nubasename))
-                
+                    renamed = True
             # check if fullpath allready exists
             while os.path.isfile(placeholders.fullpath):
                 (root, ext) = os.path.splitext(placeholders.filename)
                 placeholders.filename =  root + '_' + ext
                 placeholders.fullpath = os.path.join(
                     placeholders.directory, placeholders.filename)
+                renamed = True
+            if renamed:
+                print("Rename from {} to {}".format(oldname, placeholders.filename))
             # write content to file
             with open(placeholders.fullpath,'wb') as fout:
                 fout.write(fin.read())
