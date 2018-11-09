@@ -26,7 +26,7 @@ import re
 import time
 import unicodedata
 import string
-from urllib.request import urlopen
+from urllib.request import urlopen, Request
 from urllib.error import URLError
 from urllib.parse import urlparse
 
@@ -219,7 +219,8 @@ def download_handler(feed, placeholders):
     """
     value = feed.retrieve_config('downloadhandler', 'greg')
     if value == 'greg':
-        with urlopen(placeholders.link) as fin:
+        request = Request(placeholders.link, headers={'User-Agent': 'Greg (Podcast Aggregator)'})
+        with urlopen(request) as fin:
             renamed = False
             oldname = placeholders.filename
             # check if request went ok
