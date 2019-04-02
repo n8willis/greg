@@ -26,8 +26,10 @@ import re
 import time
 import unicodedata
 import string
-from urllib.request import urlretrieve
+import json
+from urllib.request import urlopen, Request
 from urllib.error import URLError
+from urllib.parse import urlparse
 
 from pkg_resources import resource_filename
 import feedparser
@@ -218,10 +220,35 @@ def download_handler(feed, placeholders):
     """
     value = feed.retrieve_config('downloadhandler', 'greg')
     if value == 'greg':
-        while os.path.isfile(placeholders.fullpath):
-            placeholders.fullpath = placeholders.fullpath + '_'
-            placeholders.filename = placeholders.filename + '_'
-        urlretrieve(placeholders.link, placeholders.fullpath)
+        request = Request(placeholders.link, headers={'User-Agent': 'Greg (Podcast Aggregator)'})
+        with urlopen(request) as fin:
+            renamed = False
+            oldname = placeholders.filename
+            # check if request went ok
+            if fin.getcode() != 200:
+                raise URLError
+            # check if redirection occurs, update filename accordingly
+            if fin.geturl() != placeholders.link:
+                print("Redirection to {}".format(fin.geturl()))
+                nubasename = os.path.basename(urlparse(fin.geturl()).path)
+                (root, ext) = os.path.splitext(nubasename)
+                if len(ext) > 0 :
+                    placeholders.filename = nubasename
+                    placeholders.fullpath = os.path.join(
+                        placeholders.directory, placeholders.filename)
+                    renamed = True
+            # check if fullpath allready exists
+            while os.path.isfile(placeholders.fullpath):
+                (root, ext) = os.path.splitext(placeholders.filename)
+                placeholders.filename =  root + '_' + ext
+                placeholders.fullpath = os.path.join(
+                    placeholders.directory, placeholders.filename)
+                renamed = True
+            if renamed:
+                print("Rename from {} to {}".format(oldname, placeholders.filename))
+            # write content to file
+            with open(placeholders.fullpath,'wb') as fout:
+                fout.write(fin.read())
     else:
         value_list = shlex.split(value)
         instruction_list = [substitute_placeholders(part, placeholders) for
@@ -241,12 +268,41 @@ def parse_feed_info(infofile):
     try:
         with open(infofile, 'r') as previous:
             for line in previous:
-                entrylinks.append(line.split(sep=' ')[0])
-                # This is the list of already downloaded entry links
-                linkdates.append(eval(line.split(sep=' ', maxsplit=1)[1]))
-                # This is the list of already downloaded entry dates
-                # Note that entrydates are lists, converted from a
-                # time.struct_time() object
+                # Try importing as new json format
+                try:
+                    history = json.loads(line)
+                    if 'entrylink' in history and 'linkdate' in history:
+                        entrylinks.append(history['entrylink'])
+                        # This is the list of already downloaded entry links
+                        linkdates.append(history['linkdate'])
+                        # This is the list of already downloaded entry dates
+                        # Note that entrydates are lists, converted from a
+                        # time.struct_time() object
+                    else:
+                        print("Error reading history entry for {}. Contents: {}".format(infofile, history))
+
+                    continue
+                except json.JSONDecodeError:
+                    # Ignore JSONDecodeErrors as we'll fall through to our old method
+                    pass
+
+                try:
+                    # Fallback to old buggy format
+                    entrylinks.append(line.split(sep=' ')[0])
+                    # This is the list of already downloaded entry links
+                    linkdates.append(eval(line.split(sep=' ', maxsplit=1)[1]))
+                    # This is the list of already downloaded entry dates
+                    # Note that entrydates are lists, converted from a
+                    # time.struct_time() object
+                    continue
+                except SyntaxError:
+                    # this means the eval above failed. We just ignore it
+                    pass
+
+                print("Invalid history line. Possibly broken old format. Ignoring line, but this may cause an episode "
+                      "to download again")
+                print(line)
+
     except FileNotFoundError:
         pass
     return entrylinks, linkdates
