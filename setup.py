@@ -2,7 +2,7 @@
 from setuptools import setup
 
 setup(
-    name='Greg White',
+    name='GregWhite',
     version='0.4.8',
     install_requires=['feedparser'],
     description='A command-line podcast aggregator',
