@@ -27,8 +27,9 @@ import time
 import unicodedata
 import string
 import json
-from urllib.request import urlretrieve
+from urllib.request import urlopen, Request
 from urllib.error import URLError
+from urllib.parse import urlparse
 
 from pkg_resources import resource_filename
 import feedparser
@@ -219,10 +220,35 @@ def download_handler(feed, placeholders):
     """
     value = feed.retrieve_config('downloadhandler', 'greg')
     if value == 'greg':
-        while os.path.isfile(placeholders.fullpath):
-            placeholders.fullpath = placeholders.fullpath + '_'
-            placeholders.filename = placeholders.filename + '_'
-        urlretrieve(placeholders.link, placeholders.fullpath)
+        request = Request(placeholders.link, headers={'User-Agent': 'Greg (Podcast Aggregator)'})
+        with urlopen(request) as fin:
+            renamed = False
+            oldname = placeholders.filename
+            # check if request went ok
+            if fin.getcode() != 200:
+                raise URLError
+            # check if redirection occurs, update filename accordingly
+            if fin.geturl() != placeholders.link:
+                print("Redirection to {}".format(fin.geturl()))
+                nubasename = os.path.basename(urlparse(fin.geturl()).path)
+                (root, ext) = os.path.splitext(nubasename)
+                if len(ext) > 0 :
+                    placeholders.filename = nubasename
+                    placeholders.fullpath = os.path.join(
+                        placeholders.directory, placeholders.filename)
+                    renamed = True
+            # check if fullpath allready exists
+            while os.path.isfile(placeholders.fullpath):
+                (root, ext) = os.path.splitext(placeholders.filename)
+                placeholders.filename =  root + '_' + ext
+                placeholders.fullpath = os.path.join(
+                    placeholders.directory, placeholders.filename)
+                renamed = True
+            if renamed:
+                print("Rename from {} to {}".format(oldname, placeholders.filename))
+            # write content to file
+            with open(placeholders.fullpath,'wb') as fout:
+                fout.write(fin.read())
     else:
         value_list = shlex.split(value)
         instruction_list = [substitute_placeholders(part, placeholders) for
