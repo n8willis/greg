@@ -14,7 +14,7 @@ These instructions will not work with Python 3 installed via homebrew. See the [
 
 When using pip it's preferable to install packages locally.
 
-`pip3 install --user greg`
+`pip3 install --user GregWhite`
 
 This installs greg to `~/.local/bin`. Ensure this directory is included in your system path by adding these lines to `~/.profile`:
 
@@ -36,7 +36,7 @@ Now run `greg` and you should see the greg help text displayed in your terminal.
 The normal pip `install --user` is disabled for homebrew Python 3, so you cannot follow the above instructions. You have 2 options:
 
 1. Create a workaround by setting a custom local install location. Follow [these instructions](https://github.com/Homebrew/homebrew/blob/master/share/doc/homebrew/Homebrew-and-Python.md) in the homebrew docs.
-2. Use sudo: `sudo pip3 install greg`
+2. Use sudo: `sudo pip3 install GregWhite`
 
 ## Configuration
 
